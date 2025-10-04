@@ -1,0 +1,157 @@
+ARUCO VISUAL NAVIGATION ORACLE - REVIEW PACKAGE MANIFEST
+=========================================================
+
+RECIPIENT CHECKLIST:
+--------------------
+[ ] Read PACKAGE_SUMMARY.md (5 min quick overview)
+[ ] Read scripts/README.md (30 min detailed documentation)
+[ ] Review current results in out/analysis_report.txt
+[ ] Examine plots: trajectory_plot.png, speed_profile.png, diagnostics.png
+[ ] Run oracle on video: scripts/track_aruco_v3.py
+[ ] Run analysis on results: scripts/results_review.py
+[ ] Attempt fixes (see "Potential Fixes" in PACKAGE_SUMMARY.md)
+[ ] Document changes and results
+
+
+REQUIRED FILES:
+---------------
+[x] scripts/track_aruco_v3.py       (Oracle implementation)
+[x] scripts/results_review.py        (Analysis tool)
+[x] scripts/README.md                (Technical documentation)
+[x] data/tag_unique.MOV              (Test video - 2 min, 30fps, 1080p)
+[x] data/camera.xml                  (Camera calibration)
+[x] data/config.xml                  (Calibration metadata)
+[x] PACKAGE_SUMMARY.md               (Quick start guide)
+[x] MANIFEST.txt                     (This file)
+
+
+CURRENT BASELINE RESULTS (v3):
+-------------------------------
+Location: out/oracle_v3_full.csv
+Metrics:
+  - Total frames processed: 1419 / 3432 (41%)
+  - Tags mapped: 9 (expected 25-35)
+  - Max speed: 191.5 m/s (target < 5 m/s)
+  - Speed violations (>10 m/s): 435 frames
+  - Total distance: 1306.8 m
+  - Status: FAIL - map drift present
+
+Analysis outputs:
+  - out/analysis_report.txt     (Detailed metrics)
+  - out/trajectory_plot.png     (3D visualization)
+  - out/speed_profile.png       (Speed violations chart)
+  - out/diagnostics.png         (Acceleration/turn rate)
+
+
+DEPENDENCIES:
+-------------
+Python 3.8+ with:
+  - opencv-python (with contrib for ArUco)
+  - numpy
+  - scipy
+  - matplotlib
+  - pandas
+
+Install via: uv (recommended) or pip3
+
+
+QUICK START:
+------------
+1. Run oracle:
+   $ uv run --with opencv-python --with numpy --with scipy \
+       scripts/track_aruco_v3.py \
+       --video data/tag_unique.MOV \
+       --camera data/camera.xml \
+       --output out/my_test.csv
+
+2. Analyze results:
+   $ uv run --with pandas --with numpy --with matplotlib \
+       scripts/results_review.py \
+       --trajectory out/my_test.csv \
+       --output-dir out/
+
+3. Check success criteria in out/analysis_report.txt
+
+
+KEY PARAMETERS TO TUNE (in track_aruco_v3.py):
+-----------------------------------------------
+Line ~30-35:
+  ANCHOR_REL_MIN_FRAMES = 3           # Frames needed for promotion
+  ANCHOR_REL_MAX_WINDOW = 30          # Sliding window size
+  ANCHOR_REL_RMSE_PX = 2.5           # RMSE threshold
+  ANCHOR_REL_TRANS_SCATTER_M = 0.02   # Translation consistency
+  ANCHOR_REL_ROT_SCATTER_DEG = 2.0    # Rotation consistency
+
+Line ~40-42:
+  ANCHOR_MIN_VISIBILITY = 5           # ⚠️  CRITICAL - This causes the problem!
+  ANCHOR_QUALITY_DECAY = 0.95         # Anchor scoring decay
+
+
+KNOWN ISSUES:
+-------------
+1. Bootstrap anchor (tag 100) disappears after 30 frames
+2. 1500 frame gap (~50s) with no eligible anchor
+3. 19 tags stuck in quarantine during gap
+4. Trajectory jumps during anchor gaps (191 m/s max speed)
+5. Only 9 tags mapped instead of 25-35
+
+
+SUGGESTED FIRST FIX:
+--------------------
+Try Option 1 from PACKAGE_SUMMARY.md:
+  - Change ANCHOR_MIN_VISIBILITY from 5 to 1 for first 100 frames
+  - Location: Line ~200 in track_aruco_v3.py
+  - Time: 30 minutes
+  - Expected improvement: 15-20 tags mapped, speeds < 50 m/s
+
+
+SUCCESS CRITERIA:
+-----------------
+[ ] Max speed < 5 m/s
+[ ] Mean speed < 1 m/s
+[ ] No frames with speed > 10 m/s
+[ ] At least 25 tags mapped
+[ ] Trajectory coverage > 80% (2700+ frames)
+[ ] Smooth trajectory (visual inspection)
+
+
+SUPPORT:
+--------
+All documentation is included in this package:
+  - PACKAGE_SUMMARY.md     (Quick overview + potential fixes)
+  - scripts/README.md      (Full technical documentation)
+  - Inline code comments   (Extensive implementation notes)
+
+
+DELIVERY CHECKLIST:
+-------------------
+[x] All files present and accessible
+[x] Baseline results generated
+[x] Documentation complete
+[x] Analysis tools tested
+[x] Quick start instructions verified
+[ ] Recipient acknowledgment received
+[ ] Questions answered
+[ ] Results review scheduled
+
+
+VERSION INFO:
+-------------
+Package: ArUco Oracle v3
+Date: 2025-10-04
+Status: In development - needs fixes
+Python: 3.8+
+OpenCV: 4.x with ArUco contrib
+
+
+NOTES:
+------
+- This is a research/development package, not production code
+- Focus is on understanding and fixing the map drift problem
+- Multiple solution approaches are possible
+- Document your reasoning and results
+- Feel free to try alternative approaches
+
+
+END OF MANIFEST
+
